@@ -16,16 +16,38 @@ F = round(cfg.sim.duration * fs);
 tf = (0:F-1) / fs;
 I = Mdl.fwd;
 [nu, X] = kt_phantom(cfg, I.cent, I.R);
-t_seq = tau(:) + tf;
-t_sim = zeros(size(tau(:))) + tf;
+if size(tau, 2) > 1        % R3: per-frame schedule (M x F), e.g. injection order permuted per frame
+    assert(size(tau, 2) == F, 'kt_simulate: tau must be M x 1 or M x F');
+    t_seq = tau + tf;
+else
+    t_seq = tau(:) + tf;
+end
+t_sim = zeros(size(tau, 1), 1) + tf;
+% model misspecification (R2 review, linear forward only):
+%   sim.jitter_s : sd (s) of a random offset of every measurement in every frame
+%   sim.f0_drift : relative linear change of the harmonic frequencies over the record
+%                  (instantaneous frequency nu*(1 + drift*(t/T_rec - 1/2)))
+jit = kt_get(cfg, 'sim.jitter_s', 0);
+drift = kt_get(cfg, 'sim.f0_drift', 0);
+if (jit > 0 || drift ~= 0) && ~strcmp(cfg.sim.forward, 'linear')
+    error('kt_simulate: sim.jitter_s and sim.f0_drift need sim.forward = ''linear''');
+end
+if jit > 0
+    s_old = rng; rng(cfg.seed + 7919);
+    t_seq = t_seq + jit*randn(size(t_seq));
+    rng(s_old);
+end
+harm = [cfg.sim.components.harm] > 0;
+Trec = cfg.sim.duration;
+warp = @(t, c) t + (drift*harm(c)) * (t.^2/(2*Trec) - t/2);   % phase time of component c
 switch cfg.sim.forward
     case 'linear'
         P = I.J * X;
-        dv_seq = zeros(numel(tau), F);
+        dv_seq = zeros(size(tau, 1), F);
         dv_sim = dv_seq;
         for c = 1:numel(nu)
-            dv_seq = dv_seq + real(P(:, c) .* exp(1i*2*pi*nu(c)*t_seq));
-            dv_sim = dv_sim + real(P(:, c) .* exp(1i*2*pi*nu(c)*t_sim));
+            dv_seq = dv_seq + real(P(:, c) .* exp(1i*2*pi*nu(c)*warp(t_seq, c)));
+            dv_sim = dv_sim + real(P(:, c) .* exp(1i*2*pi*nu(c)*warp(t_sim, c)));
         end
     case 'nonlinear'
         % the noise-free data depend on the phantom and the schedule only, so they are

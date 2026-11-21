@@ -26,7 +26,7 @@ from matplotlib.tri import Triangulation
 
 plt.rcParams.update({"font.family": "sans-serif", "font.sans-serif": ["Arial", "DejaVu Sans"],
     "font.size": 7.5, "pdf.fonttype": 42, "svg.fonttype": "none", "axes.linewidth": 0.6})
-COLS = ["Reference", "Naive", "Phase corr.", "FTC", "Temporal prior", "k-t (proposed)"]
+COLS = ["Reference", "Naive", "Phase corr.", "FTC", "Temp. prior", "k-t"]
 
 def load(run, name):
     d = sio.loadmat(latest(run) + name + "_data.mat", squeeze_me=True, struct_as_record=False)
@@ -93,21 +93,21 @@ def figure(rows_spec, mode, fname, cbar_label):
             ax = fig.add_axes([(lm + k * pw) / W, y0 / H, pw / W, ph / H])
             draw_panel(ax, p, cmap, mode)
             if r == 0:
-                ax.set_title(COLS[k], fontsize=7.5, fontweight="bold", pad=1.5)
+                ax.set_title(COLS[k], fontsize=8.5, fontweight="bold", pad=1.5)
             v = vals[k]
             if v is not None:
                 s = (f"$e$={v[0]:.2f}, $e_L$={v[1]:.2f}" if mode == "error" else f"$\\rho$={v[0]:.2f}")
                 ymin = np.min(np.asarray(p.V, float)[:, 1])
-                ax.text(0.0, ymin - 0.03 * np.max(np.abs(np.asarray(p.V, float))), s, ha="center", va="top", fontsize=6.6,
+                ax.text(0.0, ymin - 0.03 * np.max(np.abs(np.asarray(p.V, float))), s, ha="center", va="top", fontsize=7.8,
                         fontweight="bold" if k == best else "normal")
-        fig.text(0.06 / W, (y0 + ph / 2) / H, label, rotation=90, ha="left", va="center", fontsize=7, linespacing=1.15)
+        fig.text(0.06 / W, (y0 + ph / 2) / H, label, rotation=90, ha="left", va="center", fontsize=8.2, linespacing=1.15)
     # one colour bar for the whole figure
     cax = fig.add_axes([(W - rm + 0.10) / W, (H - top - nR * ph - (nR - 1) * gap) / H + 0.02,
                         0.07 / W, (nR * ph + (nR - 1) * gap) / H - 0.04])
     lo, hi = (0, 1) if mode == "error" else (-1, 1)
     cb = fig.colorbar(plt.cm.ScalarMappable(norm=plt.Normalize(lo, hi), cmap=cmap), cax=cax)
-    cb.set_ticks([lo, (lo + hi) / 2, hi]); cb.set_ticklabels([f'{t:g}' for t in (lo, (lo + hi) / 2, hi)]); cb.ax.tick_params(labelsize=6.8, width=0.5, length=2)
-    cb.outline.set_linewidth(0.5); cb.set_label(cbar_label, fontsize=7, labelpad=2)
+    cb.set_ticks([lo, (lo + hi) / 2, hi]); cb.set_ticklabels([f'{t:g}' for t in (lo, (lo + hi) / 2, hi)]); cb.ax.tick_params(labelsize=8, width=0.5, length=2)
+    cb.outline.set_linewidth(0.5); cb.set_label(cbar_label, fontsize=8.2, labelpad=2)
     for ext in ("pdf", "svg"): fig.savefig(OUT / f"{fname}.{ext}", dpi=600)
     fig.savefig(OUT / f"{fname}.png", dpi=600)
     plt.close(fig)
@@ -120,7 +120,7 @@ def main():
     figure([(PIG, "fig_decim_error_main", i, l) for i, l in enumerate(
             ["$h_5$, 3.51 Hz", "$h_6$, 4.21 Hz", "$h_7$, 4.91 Hz", "$h_8$, 5.62 Hz"])],
            "error", "fig_pig_error", "Magnitude / max $|X_{\\mathrm{ref}}|$")
-    CASES = [(HF, "HFOV pig\n$h_2$, 20.6 Hz"), (NEO, "Infant\ncardiac $h_2$, 4.9 Hz"), (PL, "Piglet 2\ncardiac, 3.5 Hz")]
+    CASES = [(HF, "HFOV pig\n$h_2$, 20.6 Hz"), (NEO, "Infant\ncardiac $h_2$, 4.9 Hz"), (PL, "Piglet C\ncardiac, 3.5 Hz")]
     # Fig. 4: reconstructed images (real part after phase alignment)
     figure([(run, "fig_decim_aligned", 0, lab) for run, lab in CASES], "aligned", "fig_cases_images",
            "Re$(X)$ / max $|X_{\\mathrm{ref}}|$")

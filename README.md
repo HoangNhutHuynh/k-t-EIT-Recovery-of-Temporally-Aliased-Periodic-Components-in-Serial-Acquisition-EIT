@@ -61,18 +61,29 @@ All settings are in `kt_config.m`; a script changes a copy of `cfg` and calls on
 | Simulation, oracle and 90° phase-lag cases | `run_FINAL.m` | `*_E1sim_FINAL_E1a_oracle`, `*_FINAL_E1d_lag90` |
 | Fig. 2(a), principal angles | `run_FINAL.m` | `*_E3collision_FINAL_E3` |
 | Fig. 2(b, c), nonlinear forward model, 20 noise seeds × 3 SNR | `run_R1_revision.m` (section X2, ~45 min) | `runs/R1_X2_nonlinear_sim.csv` |
-| Table II, schedule estimation with cross-validation | `run_FINAL.m` (E4 to E6), `run_E10b_pig_torso_timing.m` | `*_E4real_FINAL_*`, `*_E4real_E10b_*` |
-| Table III, HFOV regional measures (5-s blocks) | `run_FINAL.m` | `*_E4real_FINAL_E4_hfov` |
-| Table IV, frame-removal results | `run_FINAL_E7.m`, `run_E10_pig_torso.m` | `*_E7decim_FINAL_E7_*`, `*_E7decim_E10_*` |
-| Table V, regularization sweep; factor-3 removal; slow line | `run_E9_extras.m` | `*_E7decim_E9a_*`, `*_E9b_*`, `*_E9c_*` |
-| Table VI, priors, FTC linear mode, f0 error; alias-order bound | `run_R1_revision.m` (X4, X5, X6, X7) | `*_R1_X*` |
+| Section V-A, model misspecification (stagger, jitter, f0 drift) | `run_R2_revision.m` (Y8) | `runs/R2_Y8_misspec.csv` |
+| Table I, schedule estimation with cross-validation | `run_FINAL.m` (E4 to E6), `run_E10b_pig_torso_timing.m` | `*_E4real_FINAL_*`, `*_E4real_E10b_*` |
+| Section V-B, stagger inside an injection | `run_R2_revision.m` (Y7) | `runs/R2_Y7_stagger.csv` |
+| Table II, HFOV regional measures (5-s blocks) | `run_FINAL.m` | `*_E4real_FINAL_E4_hfov` |
+| Table III, frame-removal results | `run_FINAL_E7.m`, `run_E10_pig_torso.m` | `*_E7decim_FINAL_E7_*`, `*_E7decim_E10_*` |
+| Table IV, variants: other references (Y1), schedules (Y2), unaliased line at the folded bin (Y3), alpha (Y4), priors (Y5), line chosen by evidence (Z1) | `run_R2_revision.m` (Y1 to Y5), `run_R3_revision.m` (Z1) | `runs/R2_Y*.csv`, `runs/R3_Z1_evidence.csv` |
+| Section V-D, HFOV duty bounded by 1/D | `run_R2_revision.m` (Y6) | `runs/R2_Y6_*.csv` |
+| Section V-E, FTC linear mode, f0 error, alias-order bound | `run_R1_revision.m` (X4 to X7) | `*_R1_X*` |
+| Section V-E, factor-3 removal; slow line | `run_E9_extras.m` | `*_E7decim_E9b_*`, `*_E9c_*` |
+| Discussion, injection order permuted in every frame (simulation) | `run_R3_revision.m` (Z2) | `runs/R3_Z2_order.csv` |
 | Figs. 3 to 5, images and error maps | `run_FINAL_E7.m`, `run_E10b_pig_torso_timing.m` (figure section), then `run_export_fig_data.m` | `*_data.mat` next to the `.fig` files |
 
-Sections of `run_R1_revision.m` can be selected without editing the file:
+Sections of the revision scripts can be selected without editing the files:
 
 ```matlab
 RUN = {'X7'}; run_R1_revision; clear RUN
+RUN = {'Y3'}; run_R2_revision; clear RUN
+RUN = {'Z2'}; run_R3_revision; clear RUN
 ```
+
+`run_R2_revision.m` and `run_R3_revision.m` write metrics only (no figures) and append one CSV per section to `runs/` with columns `tag, record, param, pvalue, component, method, metric, value`. Approximate run times on a desktop PC: Y1 40 min, Y2 50 min, Y3 30 min, Y4 70 min, Y5 70 min, Y6 5 min, Y7 30 min, Y8 10 min, Z1 35 min, Z2 15 min. The nine records of the frame-removal experiment are defined in `exp/kt_r2_records.m`.
+
+Options added to `exp/kt_exp_decim.m` (all off by default): `cfg.decim.timing = 'uniform'` (FTC schedule), `cfg.decim.alt_refs` (every baseline also at the full rate), `cfg.decim.duty_max`, `cfg.decim.nuisance_l0` (unaliased line at the folded bin of every aliased component, solved jointly) and `cfg.decim.nuisance_select = 'evidence'` (that line added only where it lowers the negative log evidence of the bin, `core/kt_log_evidence.m`; method `kt_sel`).
 
 ### Redrawing the figures (Python)
 
@@ -82,7 +93,7 @@ After the MATLAB runs above:
 pip install -r figures/requirements.txt
 python figures/fig_sim.py              # Fig. 2
 python figures/fig_images.py           # Figs. 3 to 5
-python figures/graphical_abstract.py   # graphical abstract
+python figures/graphical_abstract.py   # graphical abstract (IEEE gagraphic, 660 x 295 px)
 ```
 
 Each script uses the newest matching run in `runs/` and writes PDF, SVG and PNG into `figures/`.
@@ -91,14 +102,15 @@ Each script uses the newest matching run in `runs/` and writes PDF, SVG and PNG 
 
 ```
 kt_config.m, kt_addpaths.m   defaults and path set-up
-run_*.m                      experiment scripts (E0 to E10, FINAL, R1); each block is one logged run
+run_*.m                      experiment scripts (E0 to E10, FINAL, R1 to R3); each block is one logged run
 core/     acquisition-time model, alias map, spectra, noise weights, reconstruction matrix,
-          k-t solve (single and joint), schedule estimation (MAP, free, cross-validation),
-          separability (principal angles), temporal-prior baseline, comparison metrics
+          k-t solve (single and joint), log evidence of a bin, schedule estimation (MAP, free,
+          cross-validation), separability (principal angles), temporal-prior baseline, metrics
 eidors/   EIDORS interface: models and thorax warping, phantom and simulation,
           Goe-MF II raw reader, row matching, reciprocity completion
 exp/      experiment drivers: simulation, sweeps, collision, real data, frame removal,
-          FTC baseline, nonlinearity index, image grids
+          FTC baseline, nonlinearity index, image grids, revision analyses (record list,
+          stagger test, injection-order design with per-channel harmonic regression)
 log/      run logging, metrics export, figure export, figure-data export
 figures/  Python scripts for the manuscript figures
 ```
@@ -108,6 +120,7 @@ Development scripts `run_E1` to `run_E8` document the path to the final configur
 ## Notes
 
 - `frame_timing_correct` in EIDORS 3.12 resets its `method` argument to `'fft'` when called with two arguments; `exp/kt_try_ftc.m` passes three arguments so that the `'linear'` mode is really used.
+- `eidors/kt_simulate.m` accepts a per-frame schedule (`tau` of size M x F) and, with the linear forward model, timing jitter (`cfg.sim.jitter_s`) and a drift of the harmonic frequencies (`cfg.sim.f0_drift`).
 - Records that store only half of the reciprocal measurement pairs (the HFOV record) are completed by reciprocity before `frame_timing_correct`, which assumes 208 measurements per frame.
 
 ## Citation

@@ -7,6 +7,8 @@ function tau = kt_timing_model(stim_idx, k_idx, fs, P)
 %   P.n_stim : S
 %   P.mode   : 'per_stim' (all voltages of one injection read together)
 %              'per_meas' (voltages read one after another)
+%              'mixed'    (voltages of an injection spread over the fraction
+%                          P.kappa of its slot; used to test the per_stim assumption)
 %   P.duty   : fraction of the frame period spanned by the S injections (0..1)
 %   P.shift  : injection slot that is read first (cyclic offset, 0..S-1)
 %   P.dir    : +1 slots in increasing order, -1 reversed
@@ -22,6 +24,9 @@ switch P.mode
     case 'per_meas'
         K = max(k_idx);
         u = (slot*K + (k_idx(:) - 1)) / (S*K);
+    case 'mixed'      % stagger inside an injection: P.kappa = 0 is 'per_stim', 1 is 'per_meas'
+        K = max(k_idx);
+        u = (slot + P.kappa*(k_idx(:) - 1)/K) / S;
     otherwise
         error('kt_timing_model: unknown mode "%s"', P.mode);
 end
